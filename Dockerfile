@@ -3,7 +3,6 @@ FROM debian:stable-slim AS base
 ENV MOSQUITTO_VERSION=2.0.10 \
     MOSQUITTO_GO_AUTH_VERSION=1.5.0 \
     CJSON_VERSION=1.7.14 \
-    C_ARES_VERSION=1.17.1 \
     LWS_VERSION=4.1.6 \
     GOLANG_VERSION=1.15.6
 WORKDIR /
@@ -37,27 +36,16 @@ RUN set -x && \
       -DBUILD_SHARED_AND_STATIC_LIBS=Off && \
     make -j "$(nproc)" && \
     rm -rf ~/.cmake && \
-    wget -nv https://c-ares.haxx.se/download/c-ares-${C_ARES_VERSION}.tar.gz -O /tmp/c-ares.tar.gz && \
-    mkdir -p /build/c-ares && \
-    tar --strip-components=1 -zxf /tmp/c-ares.tar.gz -C /build/c-ares && \
-    rm /tmp/c-ares.tar.gz && \
-    cd /build/c-ares && \
-    cmake . \
-      -DCARES_STATIC:BOOL=ON \
-      -DCARES_SHARED:BOOL=OFF && \
-    make -j "$(nproc)" && \
-    rm -rf ~/.cmake && \
     wget -nv https://mosquitto.org/files/source/mosquitto-${MOSQUITTO_VERSION}.tar.gz -O /tmp/mosquitto.tar.gz && \
     mkdir -p /build/mosquitto && \
     tar --strip-components=1 -zxf /tmp/mosquitto.tar.gz -C /build/mosquitto && \
     rm /tmp/mosquitto.tar.gz && \
     cd /build/mosquitto && \
     make \
-      CFLAGS="-I/build/lws/include -I/build/c-ares/include -I/build" \
-      LDFLAGS="-L/build/lws/lib -L/build/c-ares/lib -L/build/cjson" \
+      CFLAGS="-I/build/lws/include -I/build" \
+      LDFLAGS="-L/build/lws/lib -L/build/cjson" \
       -j "$(nproc)" \
       WITH_WRAP=yes \
-      WITH_SRV=yes \
       WITH_WEBSOCKETS=yes \
       WITH_DOCS=no && \
     make install && \
