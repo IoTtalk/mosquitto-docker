@@ -15,6 +15,21 @@ RUN set -x && \
         cmake \
         ca-certificates \
         build-essential && \
+# Download libuv source code and build
+    wget \
+        -nv https://github.com/libuv/libuv/archive/refs/tags/v1.41.0.tar.gz \
+        -O /tmp/libuv.tar.gz && \
+    mkdir -p /build/libuv/build && \
+    tar --strip-components=1 -zxf /tmp/libuv.tar.gz -C /build/libuv && \
+    rm /tmp/libuv.tar.gz && \
+    cd /build/libuv/build && \
+    cmake .. \
+        -DCMAKE_BUILD_TYPE=MinSizeRel \
+        -DBUILD_TESTING:BOOL=OFF \
+        -DLIBUV_BUILD_BENCH:BOOL=OFF \
+        -DLIBUV_BUILD_TESTS:BOOL=OFF && \
+    make -j "$(nproc)" && \
+    rm -rf ~/.cmake && \
 # Download libwebsockets source code and build
     wget \
         -nv \
@@ -27,7 +42,15 @@ RUN set -x && \
     cmake .. \
         -DCMAKE_BUILD_TYPE=MinSizeRel \
         -DBUILD_TESTING:BOOL=OFF \
-        -DLWS_WITH_SHARED:BOOL=OFF \
+# Do not build a separate shared library for an event library
+        -DLWS_WITH_EVLIB_PLUGINS:BOOL=OFF \
+# Since the static building of libwebsockets and libuv has some problems,
+# we adopt shared library.
+        -DLWS_WITH_STATIC:BOOL=OFF \
+# Enable libuv support
+        -DLWS_WITH_LIBUV:BOOL=ON \
+        -DLIBUV_INCLUDE_DIRS:PATH=/build/libuv/include \
+        -DLIBUV_LIBRARIES:FILEPATH=/build/libuv/build/libuv.so \
         -DLWS_WITH_EXTERNAL_POLL:BOOL=ON \
         -DLWS_WITHOUT_CLIENT:BOOL=ON \
         -DLWS_WITHOUT_EXTENSIONS:BOOL=ON \
@@ -121,6 +144,8 @@ RUN set -x && \
         /usr/local/lib/mosquitto_dynamic_security.so && \
 # Install other required shared libraries
     cp -a \
+        /build/libuv/build/libuv.so* \
+        /build/lws/build/lib/libwebsockets.so* \
         /build/mosquitto-go-auth/go-auth.so \
         /usr/local/lib && \
     chmod a-x /usr/local/lib/*.so* && \
