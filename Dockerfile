@@ -1,4 +1,4 @@
-FROM debian:stable-slim AS base
+FROM debian:10.9-slim AS base
 
 ENV MOSQUITTO_VERSION=2.0.10 \
     MOSQUITTO_GO_AUTH_VERSION=1.5.0 \
@@ -64,7 +64,7 @@ RUN set -x && \
     cd /build/mosquitto-go-auth && \
     make
 
-FROM debian:stable-slim
+FROM debian:10.9-slim
 
 WORKDIR /mosquitto
 
